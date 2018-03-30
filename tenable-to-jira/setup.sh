@@ -19,4 +19,3 @@
 virtualenv -p python3 .
 source bin/activate
 pip3 install requests tenable-io boto3
-cp config.py.example config.py
