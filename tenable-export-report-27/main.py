@@ -9,7 +9,7 @@ client = TenableIOClient()
 s3 = boto3.client('s3')
 
 
-def getAllScans(folder_id=2052):
+def getAllScans(folder_id):
   """ Gets all scans in a given scan folder and returns a list of scan id's. """
 
   scan_list = []
@@ -23,7 +23,7 @@ def getAllScans(folder_id=2052):
   return scan_list
 
 
-def exportAllScansS3(folder_id=2052):
+def exportAllScansS3(folder_id):
   """ Exports all Tenable scans found in a folder to S3. """
 
   scan_list = []

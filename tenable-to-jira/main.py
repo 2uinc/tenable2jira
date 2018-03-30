@@ -2,13 +2,16 @@
 from __future__ import print_function
 import requests
 import json
-import config
+import os
 from tenable_io.client import TenableIOClient
 import boto3
 
-jira_url = config.jira_url
-jira_auth = (config.jira_user, config.jira_password)
+jira_url = os.environ['JIRA_URL']
+jira_auth = (os.environ['JIRA_USER'], os.environ['JIRA_PASSWORD'])
+jira_project = os.environ['JIRA_PROJECT']
 json_header = {'Content-Type': 'application/json'}
+s3_url = os.environ['S3_URL']
+account_id = os.environ['AWS_ACCOUNT_ID']
 client = TenableIOClient()
 
 
@@ -17,7 +20,7 @@ def sendSNSMessage(msg):
 
   client = boto3.client('sns')
   response = client.publish(
-      TargetArn="arn:aws:sns:us-west-2:%s:tenable-export-report" % config.account,
+      TargetArn="arn:aws:sns:us-west-2:%s:tenable-export-report" % account_id,
       Message=msg
   )
 
@@ -30,7 +33,7 @@ def sendSNSMessage(msg):
 def linkNessusReport(issue_id, group, hostname):
   """ Adds a link to the given jira issue with the group's tenable report in S3. """
 
-  global_id = "https://s3-us-west-2.amazonaws.com/2u-devops/lambda/tenable-to-jira/reports/%s.html#%s" % (group, hostname)
+  global_id = "%s/%s.html#%s" % (s3_url, group, hostname)
   payload = {
       "globalId": global_id,
       "application": {},
@@ -57,6 +60,7 @@ def linkNessusReport(issue_id, group, hostname):
       print("Updated link: %s" % (issue_id))
 
   return True
+
 
 def updateJiraEpic(hostname, group):
   """ Updates a jira epic for a host based on scan results.  Opens new ticket if one doesn't exist. """
@@ -87,7 +91,7 @@ def createJiraEpic(hostname, group):
 
   payload = {
       "fields": {
-          "project": {"key": "SEC"},
+          "project": {"key": jira_project},
           "summary": "Vulnerabilities found on %s" % hostname,
           "description": """
           Security vulnerabilities were found on host %s.  View the attached link for a detailed report of the vulnerabilities and their remediation steps.  Each vulnerability is created as a sub-task of this ticket.
@@ -123,7 +127,7 @@ def createJiraSubtask(hostname, group, severity, vuln_id, parent_ticket):
 
   payload = {
       "fields": {
-          "project": {"key": "SEC"},
+          "project": {"key": jira_project},
           "parent": {"key": parent_ticket},
           "summary": "Vulnerability %s" % vuln_id,
           "description": """
