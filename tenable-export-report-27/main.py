@@ -3,8 +3,12 @@ from __future__ import print_function
 from tenable_io.client import TenableIOClient
 from tenable_io.api.scans import ScanExportRequest
 import boto3
+import os
 import lxml.html
 
+folder_id = os.environ['TENABLE_FOLDER_ID']
+s3_bucket = os.environ['S3_BUCKET']
+s3_path = os.environ['S3_PATH']
 client = TenableIOClient()
 s3 = boto3.client('s3')
 
@@ -66,7 +70,7 @@ def exportScanS3(group):
   if scan[0].status() == 'completed':
     scan[0].download("/tmp/%s.html" % scan[0].details().info.name, format=ScanExportRequest.FORMAT_HTML, chapter=ScanExportRequest.CHAPTER_EXECUTIVE_SUMMARY)
     updateLinkHashes("/tmp/%s.html" % group)
-    s3.upload_file("/tmp/%s.html" % group, '2u-devops', "lambda/tenable-to-jira/reports/%s.html" % group, ExtraArgs={'ContentType': 'text/html'})
+    s3.upload_file("/tmp/%s.html" % group, s3_bucket, "%s/%s.html" % (s3_path, group), ExtraArgs={'ContentType': 'text/html'})
     return "success"
   return "Something went wrong while exporting scan group %s" % group
 
