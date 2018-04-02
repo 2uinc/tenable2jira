@@ -62,7 +62,7 @@ def linkNessusReport(issue_id, group, hostname):
   return True
 
 
-def updateJiraEpic(hostname, group):
+def updateJiraEpic(hostname, group, priority):
   """ Updates a jira epic for a host based on scan results.  Opens new ticket if one doesn't exist. """
 
   tickets = requests.get(
@@ -80,13 +80,31 @@ def updateJiraEpic(hostname, group):
       issue_id = ticket['key']
 
   if not issue_id:
-    issue_id = createJiraEpic(hostname, group)
+    issue_id = createJiraEpic(hostname, group, priority)
+  elif ticket['fields']['priority']['id'] != priority:
+    if updateJiraPriority(issue_id, priority):
+      print("Updated priority %s : %s" % (issue_id, priority))
 
   linkNessusReport(issue_id, group, hostname)
   return issue_id
 
 
-def createJiraEpic(hostname, group):
+def updateJiraPriority(issue_id, priority):
+  """ Updates the priority on a given issue in Jira. """
+  payload = {
+      "update": {
+          "priority":
+              [{"set":  {"id" : priority } }]
+      }
+  }
+
+  response = requests.put("%s/issue/%s" % (jira_url, issue_id), data=json.dumps(payload), headers=json_header, auth=jira_auth)
+  if response.status_code != 204:
+    return False
+  return True
+
+
+def createJiraEpic(hostname, group, priority):
   """ Opens a jira epic for given host and return the issue key. """
 
   payload = {
@@ -108,7 +126,8 @@ def createJiraEpic(hostname, group):
               "name": "Tenable Vulnerability"
           },
           "labels": [hostname],
-          "components": [{"name": group}]
+          "components": [{"name": group}],
+          "priority": { "id": priority }
       }
   }
 
@@ -198,12 +217,19 @@ def updateScan(scan_name):
 
   details = scan.details()
   group = details.info.name
-  print(group)
+  print("Updating Group: %s" % group)
 
   for host in details.hosts:
-    if (max(host.critical, host.high, host.medium) > 0):
-      updateJiraEpic(host.hostname, group)
+    priority = None
+    if host.critical > 0:
+      priority = '1'
+    elif host.high > 0:
+      priority = '2'
+    elif host.medium > 0:
+      priority = '3'
 
+    if priority:
+      updateJiraEpic(host.hostname, group, priority)
 
   sent = sendSNSMessage(group)
   if not sent:

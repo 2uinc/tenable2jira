@@ -8,6 +8,7 @@ An integration that uses AWS for automated Jira ticket creation from Tenable vul
     - [Environment Variables](#environment-variables)
 - [Setup](#setup)
 - [Deploy](#deploy)
+- [Testing](#testing)
 - [Add more Tenable scans](#add-more-tenable-scans)
     - [Tenable.io configuration](#tenable.io-configuration)
 - [Links](#links)
@@ -55,6 +56,22 @@ Run setup.sh from inside either of the lambda's folders.  Do this before deployi
 ## Deploy
 
 Run setup first.  Make your code changes and run deploy.sh in the lambda's folder.
+
+## Testing
+
+After deploying you can run a test event in the Lambda console.
+
+In tenable-to-jira, run the `ses` event.  To choose a scan group edit the key in the event like this:
+
+`"subject": "Tenable.io Scan Results: marketing"`
+
+Change marketing to whichever scan group you want to test.
+
+In tenable-export-report-27, run the `sns` event.  Edit the key in the event like this:
+
+`"Message": "marketing",`
+
+or send an message to the SNS topic `tenable-export-report`.  A raw message with the scan group name will work.
 
 
 ## Add more Tenable scans
