@@ -74,4 +74,4 @@ This will create tickets in the TVM project in Jira.
 
 [Tenable Dashboard](http://cloud.tenable.com/)
 
-[Jira Project](https://jira.2u.com/projects/SEC)
+[Jira Project](https://jira.2u.com/projects/TVM)
