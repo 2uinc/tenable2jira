@@ -1,6 +1,7 @@
 # tenable2jira
-An integration that uses AWS for automated Jira ticket creation from Tenable vulnerability agent scans. View an overview of the process in lucidchart [here](https://drive.google.com/file/d/12_mjNtjdY_JZIo2lNo2cIxsi5Af_rjbX/view?usp=sharing).
+An integration that uses AWS for automated Jira ticket creation from Tenable vulnerability agent scans.  The current lambda using this integration in the 2U AWS Production account is configured to create tickets in the TVM Jira project.  New tenable scans can be added to use this setup, or this can copied into a new lamdbda and used with different a different tenable, AWS, or Jira environment.
 
+View an overview of the process in lucidchart [here](https://drive.google.com/file/d/12_mjNtjdY_JZIo2lNo2cIxsi5Af_rjbX/view?usp=sharing).
 
 ## Table of contents
 
