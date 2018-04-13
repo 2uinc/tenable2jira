@@ -66,7 +66,7 @@ To use the existing setup as is for a new scan group, all you need to do is add 
 Create an _Agent_ scan.  The name of the scan will become the _Component_ field in Jira.
 Add tenable@test.2u.com to the notifications email recipient list.  All other configuration options are up to you.
 
-This will create tickets in the VULN project in Jira.
+This will create tickets in the TVM project in Jira.
 
 
 ## Links
