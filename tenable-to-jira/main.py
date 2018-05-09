@@ -13,6 +13,8 @@ json_header = {'Content-Type': 'application/json'}
 s3_url = os.environ['S3_URL']
 account_id = os.environ['AWS_ACCOUNT_ID']
 client = TenableIOClient()
+hostname_field = os.environ['HOSTNAME_FIELD']
+source_field = os.environ['SOURCE_FIELD']
 
 
 def sendSNSMessage(msg):
@@ -67,8 +69,9 @@ def updateJiraEpic(hostname, group, priority):
 
   tickets = requests.get(
       jira_url +
-      "/search?jql=issuetype%3D%22Tenable%20Vulnerability%22%20and%20status%21%3Dclosed%20and%20labels%20in%20%28" +
-      hostname +
+      "/search?jql=issuetype%3D%22Vulnerability%22%20and%20" + 
+      "Source" + "%3D%22tenable%22%20and%20status%21%3Dclosed%20and%20" + 
+      "Hostname" + "%20in%20%28" + hostname +
       "%29%20and%20component%3D" +
       group,
       auth=jira_auth).json()
@@ -76,7 +79,7 @@ def updateJiraEpic(hostname, group, priority):
   issue_id = ""
 
   for ticket in tickets['issues']:
-    if hostname in ticket['fields']['labels']:
+    if hostname in ticket['fields'][hostname_field]:
       issue_id = ticket['key']
 
   if not issue_id:
@@ -112,20 +115,21 @@ def createJiraEpic(hostname, group, priority):
           "project": {"key": jira_project},
           "summary": "Vulnerabilities found on %s" % hostname,
           "description": """
-          Security vulnerabilities were found on host %s.  View the attached link for a detailed report of the vulnerabilities and their remediation steps.  Each vulnerability is created as a sub-task of this ticket.
+          Security vulnerabilities were found on host %s.  View the attached link for a detailed report of the vulnerabilities and their remediation steps.
 
           h3.Expectations
-          Complete the remediation for each vulnerability by the Due Date on each sub-task
+          Complete the remediation for each vulnerability
           h3.Process for each sub-task
-          * Move the ticket to In Progress when work is started
+          * Move the ticket to Start Progress when work is started
           * Move the ticket to Notify Support if you require help from the Security team
           * Move the ticket to Notify Review Process when work is completed
 
           """ % hostname,
           "issuetype": {
-              "name": "Tenable Vulnerability"
+              "name": "Vulnerability"
           },
-          "labels": [hostname],
+          hostname_field: [hostname],
+          source_field: ["tenable"],
           "components": [{"name": group}],
           "priority": { "id": priority }
       }
@@ -163,7 +167,7 @@ def createJiraSubtask(hostname, group, severity, vuln_id, parent_ticket):
 
           """ % (vuln_id, hostname),
           "issuetype": {
-              "name": "Tenable Vulnerability Sub-task"
+              "name": "Sub-task"
           },
           "labels": [vuln_id, severity],
           "components": [{"name": group}]

@@ -37,6 +37,8 @@ tenable-to-jira
 | S3_URL | The URL to the S3 folder location reports will be stored in.  This should match the info in S3 bucket and path in tenable-export-report function |
 | TENABLEIO_ACCESS_KEY | User access key from Tenable |
 | TENABLEIO_SECRET_KEY | User secret key from Tenable |
+| HOSTNAME_FIELD | The custom field in the jira project used to hold the hostname |
+| SOURCE_FIELD | The custom field in the jira project used to hold the source |
 
 tenable-export-report-27
 
