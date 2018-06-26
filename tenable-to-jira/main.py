@@ -85,7 +85,7 @@ def updateJiraEpic(hostname, group, priority, operating_system):
     if updateJiraPriority(issue_id, priority):
       print("Updated priority %s : %s" % (issue_id, priority))
 
-  addJiraLink(issue_id, "%s/%s.html#%s" % (s3_url, group, hostname), "Vulnerabilities Report - %s" % hostname)
+  addJiraLink(issue_id, "%s/reports/%s.html#%s" % (s3_url, group, hostname), "Vulnerabilities Report - %s" % hostname)
   return issue_id
 
 
@@ -209,9 +209,9 @@ def createJiraSubtask(parent_ticket, vulnerability, group):
 
   # map tenable vulnerability score to jira fields
   severity = {
-    2 : 'Medium',
-    3 : 'High',
-    4 : 'Critical',
+    2 : "<img src=\"%s/images/medium.png\" alt=\"Medium Severity\" height=\"25\" width=\"50\">" % s3_url,
+    3 : "<img src=\"%s/images/high.png\" alt=\"High Severity\" height=\"25\" width=\"50\">" % s3_url,
+    4 : "<img src=\"%s/images/critical.png\" alt=\"Critical Severity\" height=\"25\" width=\"50\">" % s3_url,
   }
 
   priority = {
