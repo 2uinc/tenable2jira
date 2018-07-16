@@ -1,0 +1,4 @@
+boto3
+requests
+tenable-io
+argparse
