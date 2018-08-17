@@ -5,6 +5,7 @@ import json
 import os
 from tenable_io.client import TenableIOClient
 import boto3
+import argparse
 
 jira_url = os.environ['JIRA_URL']
 jira_auth = (os.environ['JIRA_USER'], os.environ['JIRA_PASSWORD'])
@@ -146,36 +147,31 @@ def createJiraEpic(hostname, group, priority, operating_system):
 
 def getTickets(search_string):
   """ returns all tickets for a jql search string using pagination. """
-
   done = False
   startAt = 0
   tickets = {}
-
   while not done:
     more_tickets = requests.get(
         jira_url + search_string + "&startAt=" + str(startAt),
         auth=jira_auth).json()
-
     try:
       tickets['issues'].extend(more_tickets['issues'])
     except:
       tickets.update(more_tickets)
-
     if (more_tickets['total'] - more_tickets['startAt']) <= more_tickets['maxResults']:
       done = True
     else:
       startAt += more_tickets['maxResults']
-
   return tickets
 
 
-def ticketExists(tickets, vulnerability, host):
+def getSubtask(tickets, vulnerability):
   """ Checks if a ticket exists for a given vulnerability and host. """
 
   for ticket in tickets['issues']:
     try:
       if vulnerability.plugin_name == ticket['fields'][vulnerability_field]:
-        return True
+        return ticket['key']
     except:
       print("No vulnerability field on %s" % ticket['key'])
 
@@ -183,18 +179,28 @@ def ticketExists(tickets, vulnerability, host):
 
 
 def updateSubtasks(parent_ticket, host_details, group):
-  """ Update subtasks for vulnerabilities found on a host. """
+  """ Create and close subtasks for vulnerabilities found and no longer found on a host. """
 
   tickets = getTickets("/search?jql=issuetype%3D%22Sub-task%22%20and%20" +
                        "Project%3D%22" + jira_project + "%22%20and%20" +
                        "parent%3D%22" + parent_ticket + "%22%20and%20" +
+                       "source%3D%22" + "tenable" + "%22%20and%20"
                        "status%21%3Dclosed")
+
+  updatedTickets = []
+  for ticket in tickets['issues']:
+    updatedTickets.append(ticket['key'])
 
   for vulnerability in host_details.vulnerabilities:
     if vulnerability.severity >= 2:
-      if not ticketExists(tickets, vulnerability, host_details.info.as_payload()['host-fqdn']):
+      issue_id = getSubtask(tickets, vulnerability)
+      if not issue_id:
         issue_id = createJiraSubtask(parent_ticket, vulnerability, group)
         addJiraLink(issue_id, "https://www.tenable.com/plugins/nessus/%s" % vulnerability.plugin_id, "Vulnerability Report - %s" % vulnerability.plugin_name)
+      else:
+        updatedTickets.remove(issue_id)
+  for ticket in updatedTickets:
+    closeJiraTicket(ticket)
 
   return True
 
@@ -258,32 +264,31 @@ def createJiraSubtask(parent_ticket, vulnerability, group):
   return response.json()['key']
 
 
-def closeJiraTicket(tickets):
+def closeJiraTicket(issue_id):
   """ Closes a given jira ticket if one exists. """
 
-  if tickets['issues']:
-    payload = {
-        "update": {
-            "comment": [
-                {
-                    "add": {
-                        "body": "No vulnerabilities were found in the latest scan, closing ticket."
-                    }
-                }
-            ]
-        },
-        "transition": {
-            "id": "21"
-        }
-    }
-    response = requests.post("%s/issue/%s/transitions?expand=transitions.fields" % (jira_url, tickets['issues'][0]['key']), data=json.dumps(payload), headers=json_header, auth=jira_auth)
-    print("Closed jira ticket %s" % tickets['issues'][0]['key'])
+  payload = {
+      "update": {
+          "comment": [
+              {
+                  "add": {
+                      "body": "This vulnerability wasn't found in the latest scan, closing ticket."
+                  }
+              }
+          ]
+      },
+      "transition": {
+          "id": "51"
+      }
+  }
+  response = requests.post("%s/issue/%s/transitions?expand=transitions.fields" % (jira_url, issue_id), data=json.dumps(payload), headers=json_header, auth=jira_auth)
 
-    if not response.ok:
-      print(response.content)
-      return False
+  if not response.ok:
+    print(response.content)
+    return False
 
-    return True
+  print("Closed sub-task %s" % issue_id)
+  return True
 
 
 def updateScan(scan_name):
@@ -319,7 +324,21 @@ def updateScan(scan_name):
   return True
 
 
+def main():
+  parser = argparse.ArgumentParser(description='Run tenable to jira.')
+  parser.add_argument('-s', '--scan', help='Tenable scan name')
+  args = parser.parse_args()
+
+  name = args.scan
+  updateScan(name)
+  return "success"
+
+
 def lambda_handler(event, context):
   name = event['Records'][0]['ses']['mail']['commonHeaders']['subject'].split(':')[-1].strip()
   updateScan(name)
   return "success"
+
+
+if __name__== "__main__":
+  main()
