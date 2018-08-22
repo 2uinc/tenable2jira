@@ -22,6 +22,7 @@ severity_field = os.environ['SEVERITY_FIELD']
 os_field = os.environ['OS_FIELD']
 vulnerability_field = os.environ['VULNERABILITY_FIELD']
 
+
 def sendSNSMessage(msg):
   """ Sends a message to the tenable SNS topic. """
 
@@ -81,7 +82,10 @@ def updateJiraEpic(hostname, group, priority, operating_system):
       issue_id = ticket['key']
 
   if not issue_id:
-    issue_id = createJiraEpic(hostname, group, priority, operating_system)
+    if priority:
+        issue_id = createJiraEpic(hostname, group, priority, operating_system)
+    else:
+        return False
   elif ticket['fields']['priority']['id'] != priority:
     if updateJiraPriority(issue_id, priority):
       print("Updated priority %s : %s" % (issue_id, priority))
@@ -312,10 +316,12 @@ def updateScan(scan_name):
     elif host.medium > 0:
       priority = '3'
 
-    if priority:
-      host_details = client.scans_api.host_details(scan.id, host.host_id)
+    host_details = client.scans_api.host_details(scan.id, host.host_id)
+    try:
       parent_ticket = updateJiraEpic(host.hostname, group, priority, host_details.info.as_payload()['operating-system'][0])
       updateSubtasks(parent_ticket, host_details, group)
+    except:
+      pass
 
   sent = sendSNSMessage(group)
   if not sent:
