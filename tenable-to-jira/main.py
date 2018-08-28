@@ -333,10 +333,20 @@ def updateScan(scan_name):
 def main():
   parser = argparse.ArgumentParser(description='Run tenable to jira.')
   parser.add_argument('-s', '--scan', help='Tenable scan name')
+  parser.add_argument('-sq', '--sqs_body', help='Message received from SQS queue')
   args = parser.parse_args()
 
-  name = args.scan
+  if args.sqs_body:
+    body = json.loads(args.sqs_body)
+    name = json.loads(body['Message'])['mail']['commonHeaders']['subject'].split(':')[-1].strip()
+  else:
+    name = args.scan
+
   updateScan(name)
+
+  with open('scan.txt', 'w') as fh:
+    fh.write(name)
+
   return "success"
 
 
