@@ -90,7 +90,6 @@ def updateJiraEpic(hostname, group, priority, operating_system):
     if updateJiraPriority(issue_id, priority):
       print("Updated priority %s : %s" % (issue_id, priority))
 
-  addJiraLink(issue_id, "%s/reports/%s.html#%s" % (s3_url, group, hostname), "Vulnerabilities Report - %s" % hostname)
   return issue_id
 
 
@@ -322,10 +321,6 @@ def updateScan(scan_name):
       updateSubtasks(parent_ticket, host_details, group)
     except:
       pass
-
-  sent = sendSNSMessage(group)
-  if not sent:
-    print("SNS Message failed to send.")
 
   return True
 
