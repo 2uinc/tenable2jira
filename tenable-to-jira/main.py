@@ -69,7 +69,11 @@ def addJiraLink(issue_id, url, title):
       }
   }
 
-  response = requests.post("%s/issue/%s/remotelink" % (jira_url, issue_id), data=json.dumps(payload), headers=json_header, auth=jira_auth)
+  response = requests.post("%s/issue/%s/remotelink" % (jira_url, issue_id),
+                          data=json.dumps(payload),
+                          headers=json_header,
+                          auth=jira_auth)
+
   if not response.ok:
     print(response.content)
     return False
@@ -79,7 +83,10 @@ def addJiraLink(issue_id, url, title):
       links = requests.get(jira_url + "/issue/%s/remotelink" % issue_id, auth=jira_auth).json()
       for link in links:
         if link.get('globalId') != url:
-          response = requests.delete("%s/issue/%s/remotelink/%s" % (jira_url, issue_id, link.get('id')), headers=json_header, auth=jira_auth)
+          response = requests.delete("%s/issue/%s/remotelink/%s" % (jira_url, issue_id, link.get('id')),
+                                    headers=json_header,
+                                    auth=jira_auth)
+
       print("Updated link: %s" % (issue_id))
 
   return True
@@ -163,7 +170,11 @@ def updateJiraPriority(issue_id, priority):
       }
   }
 
-  response = requests.put("%s/issue/%s" % (jira_url, issue_id), data=json.dumps(payload), headers=json_header, auth=jira_auth)
+  response = requests.put("%s/issue/%s" % (jira_url, issue_id),
+                        data=json.dumps(payload),
+                        headers=json_header,
+                        auth=jira_auth)
+
   if response.status_code != 204:
     return False
   return True
@@ -201,7 +212,10 @@ def createJiraHostTask(hostname, group, priority, operating_system):
       }
   }
 
-  response = requests.post("%s/issue/" % jira_url, data=json.dumps(payload), headers=json_header, auth=jira_auth)
+  response = requests.post("%s/issue/" % jira_url,
+                          data=json.dumps(payload),
+                          headers=json_header,
+                          auth=jira_auth)
   if not response.ok:
     print(response.content)
     return False
@@ -271,7 +285,9 @@ def updateSubtasks(parent_ticket, group, hostname, vulnerabilities):
       issue = getSubtask(hostname, vulnerability.plugin_name)
       if not issue:
         issue_id = createJiraSubtask(parent_ticket, vulnerability, group)
-        addJiraLink(issue_id, "https://www.tenable.com/plugins/nessus/%s" % vulnerability.plugin_id, "Vulnerability Report - %s" % vulnerability.plugin_name)
+        addJiraLink(issue_id,
+                   "https://www.tenable.com/plugins/nessus/%s" % vulnerability.plugin_id,
+                   "Vulnerability Report - %s" % vulnerability.plugin_name)
       else:
         if issue['fields']['status']['name'].lower() == 'closed':
           reopenJiraTicket(issue['key'])
@@ -333,7 +349,10 @@ def createJiraSubtask(parent_ticket, vulnerability, group):
       }
   }
 
-  response = requests.post("%s/issue/" % jira_url, data=json.dumps(payload), headers=json_header, auth=jira_auth)
+  response = requests.post("%s/issue/" % jira_url,
+                          data=json.dumps(payload),
+                          headers=json_header,
+                          auth=jira_auth)
   if not response.ok:
     print(response.content)
     return False
@@ -360,7 +379,10 @@ def closeJiraTicket(issue_id):
           "id": "51"
       }
   }
-  response = requests.post("%s/issue/%s/transitions?expand=transitions.fields" % (jira_url, issue_id), data=json.dumps(payload), headers=json_header, auth=jira_auth)
+  response = requests.post("%s/issue/%s/transitions?expand=transitions.fields" % (jira_url, issue_id),
+                           data=json.dumps(payload),
+                           headers=json_header,
+                           auth=jira_auth)
 
   if not response.ok:
     print(response.content)
@@ -387,7 +409,10 @@ def reopenJiraTicket(issue_id):
           "id": "61"
       }
   }
-  response = requests.post("%s/issue/%s/transitions?expand=transitions.fields" % (jira_url, issue_id), data=json.dumps(payload), headers=json_header, auth=jira_auth)
+  response = requests.post("%s/issue/%s/transitions?expand=transitions.fields" % (jira_url, issue_id),
+                          data=json.dumps(payload),
+                          headers=json_header,
+                          auth=jira_auth)
 
   if not response.ok:
     print(response.content)
@@ -420,7 +445,11 @@ def updateScan(scan_name):
 
     host_details = client.scans_api.host_details(scan.id, host.host_id)
     try:
-      parent_ticket = updateJiraHostTask(host.hostname, group, priority, host_details.info.as_payload()['operating-system'][0])
+      parent_ticket = updateJiraHostTask(host.hostname,
+                                        group,
+                                        priority,
+                                        host_details.info.as_payload()['operating-system'][0])
+
       updateSubtasks(parent_ticket, group, host.hostname, host_details.vulnerabilities)
     except Exception as e:
       pass
