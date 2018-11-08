@@ -102,7 +102,7 @@ def createJiraEpic(group):
     payload = {
         "fields": {
             "project": {"key": jira_project},
-            "summary": "%s Vulnerability Epic" % group,
+            "summary": "%s Vulnerability Epic" % group.capitalize(),
             "description": """
             This is a vulnerability epic for the %s group.  This epic will contain
             all of the tickets for vulnerable hosts that belong to this group.
@@ -134,24 +134,21 @@ def updateJiraHostTask(hostname, group, priority, operating_system):
     issuetype = Vulnerability and
     Source = tenable and
     Hostname = %s and
-    component = %s and
-    status != closed
+    component = %s
+    order by created desc
     """ % (hostname, group))
 
-  issue_id = ""
+  if len(tickets['issues']) > 0:
+    issue_id = tickets['issues'][0]['key']
 
-  for ticket in tickets['issues']:
-    if hostname in ticket['fields'][hostname_field]:
-      issue_id = ticket['key']
-
-  if not issue_id:
+    if tickets['issues'][0]['fields']['priority']['id'] != priority:
+      if updateJiraPriority(issue_id, priority):
+        print("Updated priority %s : %s" % (issue_id, priority))
+  else:
     if priority:
         issue_id = createJiraHostTask(hostname, group, priority, operating_system)
     else:
         return False
-  elif ticket['fields']['priority']['id'] != priority:
-    if updateJiraPriority(issue_id, priority):
-      print("Updated priority %s : %s" % (issue_id, priority))
 
   return issue_id
 
@@ -238,20 +235,24 @@ def getTickets(search_string):
   return tickets
 
 
-def getSubtask(tickets, vulnerability):
-  """ Checks if a ticket exists for a given vulnerability and host. """
+def getSubtask(hostname, vulnerability):
+  """ Checks if a ticket exists for a given vulnerability and host and returns the ticket object. """
 
-  for ticket in tickets['issues']:
-    try:
-      if vulnerability.plugin_name == ticket['fields'][vulnerability_field]:
-        return ticket['key']
-    except Exception as e:
-      print("No vulnerability field on %s" % ticket['key'])
+  tickets = getTickets("""
+    issuetype = Sub-task and
+    Hostname = %s and
+    source = tenable and
+    Vulnerability ~ '%s'
+    order by created desc
+    """ % (hostname, vulnerability))
+
+  if len(tickets['issues']) > 0:
+    return tickets['issues'][0]
 
   return False
 
 
-def updateSubtasks(parent_ticket, host_details, group):
+def updateSubtasks(parent_ticket, group, hostname, vulnerabilities):
   """ Create and close subtasks for vulnerabilities found and no longer found on a host. """
 
   tickets = getTickets("""
@@ -265,14 +266,18 @@ def updateSubtasks(parent_ticket, host_details, group):
   for ticket in tickets['issues']:
     updatedTickets.append(ticket['key'])
 
-  for vulnerability in host_details.vulnerabilities:
+  for vulnerability in vulnerabilities:
     if vulnerability.severity >= 2:
-      issue_id = getSubtask(tickets, vulnerability)
-      if not issue_id:
+      issue = getSubtask(hostname, vulnerability.plugin_name)
+      if not issue:
         issue_id = createJiraSubtask(parent_ticket, vulnerability, group)
         addJiraLink(issue_id, "https://www.tenable.com/plugins/nessus/%s" % vulnerability.plugin_id, "Vulnerability Report - %s" % vulnerability.plugin_name)
       else:
-        updatedTickets.remove(issue_id)
+        if issue['fields']['status']['name'].lower() == 'closed':
+          reopenJiraTicket(issue['key'])
+        else:
+          updatedTickets.remove(issue['key'])
+
   for ticket in updatedTickets:
     closeJiraTicket(ticket)
 
@@ -365,6 +370,33 @@ def closeJiraTicket(issue_id):
   return True
 
 
+def reopenJiraTicket(issue_id):
+  """ Reopen a given jira ticket if one exists. """
+
+  payload = {
+      "update": {
+          "comment": [
+              {
+                  "add": {
+                      "body": "A vulnerability was found in the latest scan, reopening ticket."
+                  }
+              }
+          ]
+      },
+      "transition": {
+          "id": "61"
+      }
+  }
+  response = requests.post("%s/issue/%s/transitions?expand=transitions.fields" % (jira_url, issue_id), data=json.dumps(payload), headers=json_header, auth=jira_auth)
+
+  if not response.ok:
+    print(response.content)
+    return False
+
+  print("Reopened issue %s" % issue_id)
+  return True
+
+
 def updateScan(scan_name):
   """ Updates tickets and reports for a given tenable scan name. """
 
@@ -389,7 +421,7 @@ def updateScan(scan_name):
     host_details = client.scans_api.host_details(scan.id, host.host_id)
     try:
       parent_ticket = updateJiraHostTask(host.hostname, group, priority, host_details.info.as_payload()['operating-system'][0])
-      updateSubtasks(parent_ticket, host_details, group)
+      updateSubtasks(parent_ticket, group, host.hostname, host_details.vulnerabilities)
     except Exception as e:
       pass
 

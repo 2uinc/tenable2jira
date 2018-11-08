@@ -46,6 +46,8 @@ tenable-to-jira
 | SOURCE_FIELD | The custom field in the jira project used to hold the source |
 | SEVERITY_FIELD | The custom field in the jira project used to hold the severity |
 | VULNERABILITY_FIELD | The custom field in the jira project used to hold the vulnerability |
+| EPIC_FIELD | The custom field in the jira project used to hold the epic name |
+| EPIC_LINK_FIELD | The custom field in the jira project used to hold the epic link |
 
 tenable-export-report-27
 
@@ -58,7 +60,7 @@ tenable-export-report-27
 | TENABLEIO_SECRET_KEY | User secret key from Tenable |
 
 
-## Lambda 
+## Lambda
 
 #### Setup
 
