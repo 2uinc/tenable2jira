@@ -1,8 +1,6 @@
 # tenable2jira
 An integration that uses AWS Lambda and/or Jenkins for automated Jira ticket creation from Tenable vulnerability agent scans.  The current setup in the 2U AWS Production account is configured to create tickets in the TVM Jira project through running this code in Jenkins.  New tenable scans can be added to use this setup, or this can copied into a new lambda and used with different a different tenable, AWS, or Jira environment.
 
-View an overview of the process in lucidchart [here](https://drive.google.com/file/d/17yVHOOh7TOyINdpyjVg77nxrg6L1tUtM/view?usp=sharing).
-
 ## Table of contents
 
 - [How it works](#how-it-works)
@@ -16,7 +14,7 @@ View an overview of the process in lucidchart [here](https://drive.google.com/fi
 
 ## How it works
 
-Tenable agent scans are configured to run on a set schedule.  When each scan completes, it sends a notification to tenable@test.2u.com.  There's an SES receipt rule that catches email delivered to this address and can either:
+Tenable agent scans are configured to run on a set schedule.  When each scan completes, it sends a notification to the email address configured in the scan.  There's an SES receipt rule that catches email delivered to this address and can either:
 - trigger an AWS lambda function (tenable-to-jira)
 - trigger a Jenkins job (tenable2jira)
 
@@ -90,26 +88,15 @@ or send an message to the SNS topic `tenable-export-report`.  A raw message with
 
 #### Setup
 
-Current jenkins jobs are : [tenable2jira](https://tech-ops-jenkins-dev.2u.com/view/Security/job/tenable2jira/) and [tenable2jira-dev](https://tech-ops-jenkins-dev.2u.com/view/Security/job/tenable2jira-dev/).  The jenkins jobs use the SQS plugin to subscribe to the tenable2jira-scan-notification queue.  This SQS queue is subscribed the tenable-to-jira-email SNS queue which receives messages from the SES rule that catches all emails going to tenable@test.2u.com
-
-#### Testing/Deploying
-
-The [tenable2jira-dev](https://tech-ops-jenkins-dev.2u.com/view/Security/job/tenable2jira-dev/) jenkins job is configured to use the "dev" branch in this repo and is connected to jira-dev.  To deploy to the production tenable2jira jenkins job just merge to master.
+The jenkins jobs use the SQS plugin to subscribe to the tenable2jira-scan-notification queue.  This SQS queue is subscribed the tenable-to-jira-email SNS queue which receives messages from the SES rule that catches all emails going to the configured email address.
 
 ## Add more Tenable scans
 
-To use the existing setup as is for a new scan group, all you need to do is add an agent scan and send notifications to tenable@test.2u.com.
+To use the existing setup as is for a new scan group, all you need to do is add an agent scan and send notifications to the email address.
 
 ### Tenable.io configuration
 
 Create an _Agent_ scan.  The name of the scan will become the _Component_ field in Jira.
-Add tenable@test.2u.com to the notifications email recipient list.  All other configuration options are up to you.
+Add the email to the notifications email recipient list.  All other configuration options are up to you.
 
 This will create tickets in the TVM project in Jira.
-
-
-## Links
-
-[Tenable Dashboard](http://cloud.tenable.com/)
-
-[Jira Project](https://jira.2u.com/projects/TVM)
