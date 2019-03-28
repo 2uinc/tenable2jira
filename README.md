@@ -5,11 +5,15 @@ An integration that uses AWS Lambda and/or Jenkins for automated Jira ticket cre
 
 - [How it works](#how-it-works)
     - [Environment Variables](#environment-variables)
+    - [Tenable.io configuration](#tenable.io-configuration)
+    - [AWS configuration](#aws-configuration)
+    - [Jira configuration](#jira-configuration)
 - [Lambda](#lambda)
+    - [Setup](#setup)
+    - [Deploy](#deploy)
+    - [Testing](#testing)
 - [Jenkins](#jenkins)
 - [Add more Tenable scans](#add-more-tenable-scans)
-    - [Tenable.io configuration](#tenable.io-configuration)
-- [Links](#links)
 
 
 ## How it works
